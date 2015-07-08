@@ -4,7 +4,7 @@
 # Version: 0.1
 # Author: Nagu Gopalakrishnan (avial.io)
 #
-# Dependency tar
+# Dependency tar ncftp
 #
 # inspired by ideas from https://code.google.com/p/mycodedump/wiki/BackupScripts
 #
@@ -48,6 +48,26 @@ DAY=$(date +"%u")
 # you can also hos HOST ="Custom Name" instead of direct hostname
 HOST="$(hostname)"
 
+
+###FTP Details###
+### FTP server Setup ###
+
+#FTP Directory
+FTPD="/backup/"
+
+#FTP User name
+FTPU="ftp user name"
+
+#FTP password
+FTPP="password"
+
+#FTP port
+FTPPORT="22"
+
+#FTP Host ot FTP IP
+FTPS="ftp.example.com"
+
+
 ##Lets start the tar##
 ##Plan to include other options for the next release##
 TAR=$(which tar)
@@ -80,6 +100,30 @@ fi
 # Remove files older than x days if cleanup is activated
 if [ HOUSEKEEP == 1 ]; then
     find $BACKUPDIR/ -name "*.gz" -type f -mtime +$OLDERTHAN -delete
+fi
+
+
+### Libraries ###
+NCFTP="$(which ncftp)"
+if [ -z "$NCFTP" ]; then
+    echo "$NOW : Error: NCFTP not found" >> $LOGFILE
+    exit 1
+fi
+
+
+### Dump backup using FTP ###
+#Start FTP backup using ncftp
+$NCFTP -u"$FTPU" -p"$FTPP" -P"$FTPPORT" $FTPS<<EOF
+mkdir $FTPD
+cd $FTPD
+lcd $DIR
+put -DD *
+quit
+EOF
+
+### Log if ftp backup failed ###
+if [ "$?" != "0" ]; then
+    echo "$NOW : Error: Backup Failed for $HOST" >> $LOGFILE
 fi
 
 
